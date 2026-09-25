@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────────
+# LabelGuard — .gitignore
+# ─────────────────────────────────────────────────────────────────
+
+# ── Secrets — NEVER commit ────────────────────────────────────────
+.env
+*.env
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+
+# ── Testing ───────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.xml
+
+# ── Alembic ───────────────────────────────────────────────────────
+# Keep migrations, ignore compiled caches
+alembic/__pycache__/
+
+# ── EasyOCR model weights (large, downloaded at runtime) ──────────
+.EasyOCR/
+*.pth
+*.onnx
+
+# ── Node / React ──────────────────────────────────────────────────
+node_modules/
+web/dist/
+web/build/
+web/.vite/
+mobile/.expo/
+mobile/dist/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ── Docker ────────────────────────────────────────────────────────
+# Keep compose files, ignore generated volumes
+docker-volumes/
+
+# ── Temp / Generated ──────────────────────────────────────────────
+tmp/
+*.tmp
+*.log
+reports/

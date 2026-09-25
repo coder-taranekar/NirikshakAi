@@ -1,0 +1,138 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────
+# LabelGuard — Full Stack Docker Compose
+# Usage:
+#   1. cp .env.example .env  (fill in your values)
+#   2. docker-compose up --build
+#   3. API available at http://localhost:8000
+#      MinIO console at http://localhost:9001
+# ─────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL Database ──────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: labelguard_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - labelguard_net
+
+  # ── MinIO Object Storage ─────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: labelguard_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Web console
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - labelguard_net
+
+  # ── MinIO Bucket Initialiser ─────────────────────────────────────
+  # Runs once on startup to create required buckets
+  minio_init:
+    image: minio/mc:latest
+    container_name: labelguard_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY};
+      mc mb --ignore-existing local/${MINIO_BUCKET_IMAGES};
+      mc mb --ignore-existing local/${MINIO_BUCKET_REPORTS};
+      mc anonymous set download local/${MINIO_BUCKET_IMAGES};
+      echo 'MinIO buckets ready.';
+      "
+    networks:
+      - labelguard_net
+
+  # ── Redis ────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: labelguard_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - labelguard_net
+
+  # ── FastAPI Backend ──────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: labelguard_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      MINIO_ENDPOINT: minio:9000
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app          # hot-reload in dev
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - labelguard_net
+
+# ── Volumes ──────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────────
+networks:
+  labelguard_net:
+    driver: bridge

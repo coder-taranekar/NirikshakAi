@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────
+# LabelGuard — Production Overrides
+#
+# Adds the Nginx reverse proxy and tightens settings.
+#
+# Usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+# ─────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+
+  # ── Backend: production mode, no hot reload ────────────────────
+  backend:
+    environment:
+      APP_ENV: production
+    # Remove direct port exposure — traffic must go through nginx
+    ports: !reset []
+
+  # ── Web Frontend ───────────────────────────────────────────────
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: labelguard_web
+    restart: unless-stopped
+    networks:
+      - labelguard_net
+
+  # ── Nginx Reverse Proxy ────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: labelguard_nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - web
+    networks:
+      - labelguard_net

@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────────
+# LabelGuard — Development Overrides
+#
+# Extends docker-compose.yml with dev-friendly settings:
+#   - Hot reload for the backend (uvicorn --reload)
+#   - Volume mounts so code changes reflect instantly
+#   - Exposed ports for direct access (bypass nginx)
+#   - Relaxed security for local development
+#
+# Usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Shortcut (add to your shell):
+#   alias dcdev="docker-compose -f docker-compose.yml -f docker-compose.dev.yml"
+#   dcdev up --build
+# ─────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+
+  # ── Backend: hot reload + debug mode ──────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      # Build only the builder stage in dev — faster rebuilds
+      target: builder
+    volumes:
+      # Mount source so changes are reflected without rebuild
+      - ./backend:/app
+      # Persist EasyOCR model downloads across container restarts
+      - easyocr_models:/root/.EasyOCR
+    environment:
+      APP_ENV: development
+      # Enable SQL query logging
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    # Override CMD: use --reload for hot reload, single worker in dev
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m app.utils.seed &&
+             uvicorn app.main:app
+               --host 0.0.0.0
+               --port 8000
+               --reload
+               --reload-dir /app/app
+               --log-level debug"
+    ports:
+      # Direct backend access for API testing (Postman, curl, etc.)
+      - "8000:8000"
+
+  # ── PostgreSQL: expose port for direct DB access ───────────────
+  db:
+    ports:
+      - "5432:5432"
+    # Persist data between dev container restarts
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ── MinIO: expose both API and console ports ───────────────────
+  minio:
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console → http://localhost:9001
+
+  # ── Redis: expose port for direct inspection ───────────────────
+  redis:
+    ports:
+      - "6379:6379"
+
+  # ── Nginx: NOT used in dev (access services directly) ──────────
+  # nginx is defined in docker-compose.prod.yml only
+
+# ── Dev-only volumes ──────────────────────────────────────────────
+volumes:
+  easyocr_models:
+    driver: local
