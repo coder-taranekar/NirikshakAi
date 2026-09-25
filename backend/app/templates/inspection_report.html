@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LabelGuard Compliance Report — {{ inspection_id }}</title>
+  <style>
+    /* ── Base ─────────────────────────────────── */
+    @page {
+      size: A4;
+      margin: 20mm 18mm 20mm 18mm;
+    }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 10pt;
+      color: #1a1a2e;
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+    h1 { font-size: 18pt; margin: 0 0 4px 0; }
+    h2 { font-size: 12pt; margin: 16px 0 6px 0; border-bottom: 1.5px solid #3b4a6b; padding-bottom: 3px; }
+    h3 { font-size: 10pt; margin: 10px 0 4px 0; }
+    p  { margin: 2px 0; }
+
+    /* ── Header ───────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #1a1a2e;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .header-left h1 { color: #1a1a2e; }
+    .header-left .subtitle { color: #555; font-size: 8pt; }
+    .header-right { text-align: right; font-size: 8pt; color: #555; }
+
+    /* ── Score Badge ──────────────────────────── */
+    .score-section {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: #f4f6fb;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+    }
+    .score-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .score-circle .score-num  { font-size: 22pt; line-height: 1; }
+    .score-circle .score-label{ font-size: 7pt; margin-top: 2px; }
+    .score-compliant     { background: #d1fae5; color: #065f46; border: 2px solid #10b981; }
+    .score-partial       { background: #fef3c7; color: #92400e; border: 2px solid #f59e0b; }
+    .score-non_compliant { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+    .status-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 9pt;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .pill-compliant     { background: #d1fae5; color: #065f46; }
+    .pill-partial       { background: #fef3c7; color: #92400e; }
+    .pill-non_compliant { background: #fee2e2; color: #991b1b; }
+    .score-meta p { margin: 2px 0; font-size: 9pt; }
+
+    /* ── Info Grid ────────────────────────────── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 24px;
+      font-size: 9pt;
+      margin-bottom: 14px;
+    }
+    .info-grid .label { color: #555; }
+    .info-grid .value { font-weight: 500; }
+
+    /* ── Declaration Table ────────────────────── */
+    table.declarations {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin-bottom: 14px;
+    }
+    table.declarations thead tr {
+      background: #1a1a2e;
+      color: #fff;
+    }
+    table.declarations thead th {
+      padding: 6px 8px;
+      text-align: left;
+      font-weight: 600;
+    }
+    table.declarations tbody tr:nth-child(even) { background: #f8f9fc; }
+    table.declarations tbody td { padding: 5px 8px; vertical-align: top; }
+    .td-pass  { color: #065f46; font-weight: bold; }
+    .td-fail  { color: #991b1b; font-weight: bold; }
+    .rule-ref { font-size: 7.5pt; color: #3b4a6b; }
+    .extracted { font-family: monospace; font-size: 8pt; color: #444; word-break: break-all; }
+
+    /* ── Advanced Checks ──────────────────────── */
+    .check-block {
+      background: #f8f9fc;
+      border-left: 3px solid #3b4a6b;
+      padding: 8px 10px;
+      border-radius: 0 4px 4px 0;
+      margin-bottom: 8px;
+      font-size: 9pt;
+    }
+    .check-block.ok   { border-color: #10b981; }
+    .check-block.warn { border-color: #f59e0b; }
+    .check-block.fail { border-color: #ef4444; }
+    .check-title { font-weight: bold; margin-bottom: 3px; }
+
+    /* ── Penalty ──────────────────────────────── */
+    .penalty-box {
+      background: #fff7ed;
+      border: 1.5px solid #f59e0b;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 9pt;
+      margin-bottom: 14px;
+    }
+    .penalty-box.ok { background: #f0fdf4; border-color: #10b981; }
+
+    /* ── Footer ───────────────────────────────── */
+    .footer {
+      border-top: 1px solid #ccc;
+      padding-top: 6px;
+      font-size: 7.5pt;
+      color: #888;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    /* ── Hard fail banner ─────────────────────── */
+    .hard-fail-banner {
+      background: #fef2f2;
+      border: 1.5px solid #ef4444;
+      color: #991b1b;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 9.5pt;
+      font-weight: bold;
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<div class="header">
+  <div class="header-left">
+    <h1>LabelGuard</h1>
+    <div class="subtitle">
+      Legal Metrology (Packaged Commodities) Rules, 2011<br>
+      Department of Consumer Affairs, Government of India
+    </div>
+  </div>
+  <div class="header-right">
+    <strong>COMPLIANCE INSPECTION REPORT</strong><br>
+    Report ID: {{ inspection_id }}<br>
+    Generated: {{ generated_at }}<br>
+    Inspector: {{ inspector_name }}
+  </div>
+</div>
+
+<!-- ── Score ────────────────────────────────────────────────────── -->
+<div class="score-section">
+  <div class="score-circle score-{{ status }}">
+    <span class="score-num">{{ score }}</span>
+    <span class="score-label">/100</span>
+  </div>
+  <div class="score-meta">
+    <p>
+      <span class="status-pill pill-{{ status }}">{{ status_label }}</span>
+      {% if hard_fail %}
+      &nbsp;<span class="status-pill" style="background:#fee2e2;color:#991b1b;">⚠ Hard Fail</span>
+      {% endif %}
+    </p>
+    <p><strong>Inspection Date:</strong> {{ inspection_date }}</p>
+    <p><strong>Source:</strong> {{ source }}</p>
+    {% if source_url %}<p><strong>URL:</strong> <em>{{ source_url }}</em></p>{% endif %}
+    <p><strong>State / District:</strong> {{ state }} / {{ district }}</p>
+  </div>
+</div>
+
+{% if hard_fail %}
+<div class="hard-fail-banner">
+  ⚠ One or more mandatory declarations are missing or non-compliant.
+  This product is classified NON-COMPLIANT regardless of score.
+</div>
+{% endif %}
+
+<!-- ── Product & Inspector Info ────────────────────────────────── -->
+<h2>Inspection Details</h2>
+<div class="info-grid">
+  <span class="label">Product Name</span><span class="value">{{ product_name }}</span>
+  <span class="label">Generic Name</span><span class="value">{{ generic_name }}</span>
+  <span class="label">Brand</span><span class="value">{{ brand }}</span>
+  <span class="label">Manufacturer</span><span class="value">{{ manufacturer }}</span>
+  <span class="label">Barcode</span><span class="value">{{ barcode }}</span>
+  <span class="label">Schedule II Commodity</span><span class="value">{{ schedule_ii }}</span>
+</div>
+
+<!-- ── Declaration Checks ───────────────────────────────────────── -->
+<h2>Mandatory Declaration Checks (Rule 6)</h2>
+<table class="declarations">
+  <thead>
+    <tr>
+      <th style="width:22%">Declaration</th>
+      <th style="width:10%">Result</th>
+      <th style="width:12%">Rule</th>
+      <th style="width:30%">Extracted Value</th>
+      <th style="width:26%">Violation / Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in declarations %}
+    <tr>
+      <td><strong>{{ d.label }}</strong></td>
+      <td class="td-{{ d.status }}">{{ '✓ PASS' if d.status == 'pass' else '✗ FAIL' }}{% if d.hard_fail and d.status == 'fail' %} ⚠{% endif %}</td>
+      <td><span class="rule-ref">{{ d.rule_reference }}</span></td>
+      <td><span class="extracted">{{ d.extracted_value or '—' }}</span></td>
+      <td>
+        {% if d.status == 'fail' %}
+          {{ d.violation_description }}<br>
+          <em style="font-size:8pt;color:#555;">{{ d.plain_language_explanation[:120] }}...</em>
+        {% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ── Advanced Checks ──────────────────────────────────────────── -->
+<h2>Advanced Compliance Checks</h2>
+
+<!-- Font Size -->
+<div class="check-block {{ 'ok' if advanced.font_size_compliant else 'fail' }}">
+  <div class="check-title">Font Size (Rules 7(3) &amp; 8) — {{ 'PASS' if advanced.font_size_compliant else 'FAIL (' + advanced.font_size_failed|string + ' violation(s))' }}</div>
+  {% if not advanced.font_size_compliant %}
+    {% for v in advanced.font_size_violations[:5] %}
+    <p>• "<em>{{ v.text }}</em>" — measured {{ v.measured_mm }}mm, required {{ v.required_mm }}mm ({{ v.rule_reference }})</p>
+    {% endfor %}
+    {% if advanced.font_size_violations|length > 5 %}
+    <p><em>… and {{ advanced.font_size_violations|length - 5 }} more.</em></p>
+    {% endif %}
+  {% else %}
+    <p>All text blocks meet minimum font height requirements.</p>
+  {% endif %}
+</div>
+
+<!-- Whitespace -->
+<div class="check-block {{ 'ok' if advanced.whitespace_compliant else 'warn' }}">
+  <div class="check-title">Whitespace Clearance (Rule 8) — {{ 'PASS' if advanced.whitespace_compliant else 'FAIL (' + advanced.whitespace_violations|length|string + ' intrusion(s))' }}</div>
+  {% if not advanced.whitespace_compliant %}
+    {% for v in advanced.whitespace_violations[:3] %}
+    <p>• {{ v.description }}</p>
+    {% endfor %}
+  {% else %}
+    <p>Mandatory clearance zones around quantity numerals are clear.</p>
+  {% endif %}
+</div>
+
+<!-- MRP Sticker -->
+<div class="check-block {{ 'fail' if advanced.sticker_fraud_detected else 'ok' }}">
+  <div class="check-title">MRP Sticker Fraud — {{ 'SUSPECTED' if advanced.sticker_fraud_detected else 'CLEAR' }}</div>
+  <p>{{ advanced.sticker_fraud_note }}</p>
+</div>
+
+<!-- Pack Size -->
+{% if advanced.pack_size_violation is defined %}
+<div class="check-block {{ 'fail' if advanced.pack_size_violation else 'ok' }}">
+  <div class="check-title">Schedule II Pack Size — {{ 'VIOLATION' if advanced.pack_size_violation else 'PASS' }}</div>
+  <p>{{ advanced.pack_size_note }}</p>
+</div>
+{% endif %}
+
+<!-- Multilingual -->
+<div class="check-block {{ 'ok' if advanced.devanagari_detected else 'warn' }}">
+  <div class="check-title">Multilingual (Hindi/Devanagari) — {{ 'PRESENT' if advanced.devanagari_detected else 'NOT DETECTED' }}</div>
+  <p>{{ advanced.multilingual_note }}</p>
+</div>
+
+<!-- ── Penalty ───────────────────────────────────────────────────── -->
+<h2>Penalty Assessment</h2>
+<div class="penalty-box {{ 'ok' if penalty.tier is none else '' }}">
+  <p><strong>Applicable Section:</strong> {{ penalty.applicable_section }}</p>
+  {% if penalty.tier %}
+  <p><strong>Offence Tier:</strong> {{ penalty.tier | upper }}</p>
+  <p><strong>Estimated Penalty Range:</strong> ₹{{ penalty.estimated_min | int | format_inr }} – ₹{{ penalty.estimated_max | int | format_inr }}</p>
+  {% else %}
+  <p><strong>Penalty:</strong> None — product is compliant.</p>
+  {% endif %}
+  <p><em>{{ penalty.note }}</em></p>
+</div>
+
+{% if inspector_notes %}
+<h2>Inspector Notes</h2>
+<div class="check-block">
+  <p>{{ inspector_notes }}</p>
+</div>
+{% endif %}
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<div class="footer">
+  This report was generated by LabelGuard — an automated compliance checking system for packaged commodities.<br>
+  Legal Metrology (Packaged Commodities) Rules, 2011 | Department of Consumer Affairs, Government of India<br>
+  Report ID: {{ inspection_id }} | Generated: {{ generated_at }}
+</div>
+
+</body>
+</html>

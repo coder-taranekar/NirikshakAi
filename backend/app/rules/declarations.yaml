@@ -1,0 +1,118 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# LabelGuard — Mandatory Declaration Rules
+# Legal Metrology (Packaged Commodities) Rules, 2011 — Rule 6
+#
+# Each entry defines one required declaration field.
+# Fields:
+#   field            : internal field identifier
+#   label            : human-readable field name
+#   rule_reference   : exact rule citation
+#   patterns         : list of regex patterns (any match = found)
+#   hard_fail        : if true, ANY failure → non_compliant regardless of score
+#   weight           : contribution to compliance score (max weight = 5)
+#   violation_description    : short description for reports
+#   plain_language_explanation : inspector-friendly explanation with example
+# ─────────────────────────────────────────────────────────────────────────────
+
+- field: manufacturer_address
+  label: "Name and Address of Manufacturer/Packer/Importer"
+  rule_reference: "Rule 6(a)"
+  patterns:
+    - "(?i)(manufactured|packed|imported)\\s+by"
+    - "(?i)(mfg\\.?|mfr\\.?)\\s+by"
+    - "(?i)(marketed|distributed)\\s+by"
+  hard_fail: true
+  weight: 5
+  violation_description: "Name and address of manufacturer/packer/importer not declared"
+  plain_language_explanation: >
+    Every package must state who made, packed, or imported it, along with a
+    full postal address. Look for phrases like 'Manufactured by', 'Packed by',
+    or 'Imported by' followed by a name and address.
+
+- field: generic_name
+  label: "Generic Name of Commodity"
+  rule_reference: "Rule 6(b)"
+  patterns:
+    - "(?i)(contents?|commodity|product|item)\\s*:"
+    - "(?i)(biscuits?|chips?|noodles?|flour|oil|water|milk|sugar|salt|rice|dal|tea|coffee|ghee|butter|cement|fertilizer|lpg)"
+  hard_fail: false
+  weight: 4
+  violation_description: "Generic/common name of commodity not declared"
+  plain_language_explanation: >
+    The generic or common name of the product must appear on the label.
+    For example: 'Wheat Flour', 'Refined Sunflower Oil', or 'Drinking Water'.
+    Brand names alone are not sufficient.
+
+- field: mrp
+  label: "Maximum Retail Price (MRP)"
+  rule_reference: "Rule 6(c)"
+  patterns:
+    - "(?i)(maximum\\s+retail\\s+price|mrp)\\s*[₹Rs\\.INR]*\\s*\\d+[\\.,]\\d{2}"
+    - "(?i)inclusive\\s+of\\s+all\\s+tax"
+  hard_fail: true
+  weight: 5
+  violation_description: "MRP not declared in the prescribed format"
+  plain_language_explanation: >
+    MRP must be shown as: 'MRP ₹XX.XX Inclusive of all taxes' or
+    'Maximum Retail Price ₹XX.XX Inclusive of all taxes'.
+    The currency symbol (₹/Rs./INR), two decimal places, and the phrase
+    'Inclusive of all taxes' are all mandatory under Rule 6(c).
+
+- field: net_quantity
+  label: "Net Quantity"
+  rule_reference: "Rule 6(e)"
+  patterns:
+    - "(?i)net\\s*(wt\\.?|weight|qty\\.?|quantity|content|vol\\.?|volume)?\\s*[:\\-]?\\s*\\d+\\s*(g|gm|gms|kg|kgs|ml|l|ltr|litre|litres|mg)"
+    - "(?i)\\d+\\s*(grams?|kilograms?|millilitres?|litres?|milligrams?)"
+    - "(?i)(e\\s*)?\\d+\\s*(g|ml|kg|l)(?!\\w)"
+  hard_fail: true
+  weight: 5
+  violation_description: "Net quantity not declared in standard units"
+  plain_language_explanation: >
+    The net quantity must be stated in SI units (grams, kilograms, millilitres,
+    or litres). 'Net Wt. 500g' or 'Net Vol. 1L' are acceptable formats.
+    Non-SI units like pounds or ounces are not permitted.
+
+- field: manufacture_date
+  label: "Month and Year of Manufacture/Packing/Import"
+  rule_reference: "Rule 6(d)"
+  patterns:
+    - "(?i)(mfg\\.?|mfd\\.?|manufactured|packed|imported|packing)\\s*(date|dt\\.?|on)?\\s*[:\\-]?\\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\\d{1,2})[\\s/\\-\\.]*\\d{2,4}"
+    - "(?i)(best\\s+before|use\\s+by|expiry|exp\\.?|bb)\\s*[:\\-]?\\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\\d{1,2})[\\s/\\-\\.]*\\d{2,4}"
+    - "(?i)\\d{2}[/\\-\\.]\\d{2}[/\\-\\.]\\d{2,4}"
+  hard_fail: true
+  weight: 4
+  violation_description: "Month and year of manufacture/packing/import not declared"
+  plain_language_explanation: >
+    The month and year of manufacture, packing, or import must be printed on
+    the label. Acceptable formats include 'MFG: Jan 2024', '01/2024', or
+    'Packed: 03-2024'. The year must be 4 digits.
+
+- field: consumer_care
+  label: "Consumer Care Details"
+  rule_reference: "Rule 6(f)"
+  patterns:
+    - "(?i)(consumer\\s+care|customer\\s+care|helpline|toll\\s*free|1800)"
+    - "(?i)(\\+91|0\\d{2,4})[\\s\\-]?\\d{6,8}"
+    - "(?i)[a-z0-9._%+\\-]+@[a-z0-9.\\-]+\\.[a-z]{2,}"
+  hard_fail: false
+  weight: 3
+  violation_description: "Consumer care contact details not provided"
+  plain_language_explanation: >
+    Manufacturer must provide consumer care contact information including
+    a name, address, and at least one of: phone number, email address, or
+    toll-free helpline. This is required under Rule 6(f).
+
+- field: country_of_origin
+  label: "Country of Origin (imports only)"
+  rule_reference: "Rule 6 — Imports"
+  patterns:
+    - "(?i)(country\\s+of\\s+origin|origin|made\\s+in|product\\s+of)\\s*[:\\-]?\\s*[a-z]+"
+    - "(?i)(imported\\s+(from|by)|origin\\s*:)"
+  hard_fail: false
+  weight: 3
+  violation_description: "Country of origin not declared (required for imported goods)"
+  plain_language_explanation: >
+    For imported commodities, the country of origin must be clearly stated.
+    Acceptable formats: 'Made in China', 'Country of Origin: USA',
+    'Product of Germany'. This field is only checked for imported products.
